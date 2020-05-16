@@ -1,0 +1,42 @@
+# Configuration for the NPCsTeamClaim plugin.
+# You can configure all the StructureType present on https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/StructureType.html
+# entity_types: The list of all types of entities that will form the team on https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/package-summary.html
+
+village:
+  radius: 4
+  entity_types:
+  - "org.bukkit.entity.Villager"
+  - "org.bukkit.entity.IronGolem"
+  claim_rules:
+    openDoors: true
+  names:
+  - Corberock
+  - Highmountain
+  - Sandpeak
+  - Longriver
+  - Hightree
+  - Longdale
+  - Tamworth
+  - Colchester
+  - Alverton
+  - Lanercost
+  - Caershire
+  - Fortaare
+pillager_outpost:
+  radius: 3
+  entity_types:
+  - "org.bukkit.entity.Raider"
+  names:
+  - The Secret Tower
+  - The Dark Tower
+  - The Forgotten Tower
+  - The High Tower
+  - The Grey Burrows
+  - Cells of Nargoth
+  - The Old cells
+  - The Terraced Vault
+  - The Hungry cells
+  - The Forbidden Dungeon
+  - The Ironbark Dunjeon
+  - Lair of the Mythic Forest
+  - Cells of the Granite Tiger
