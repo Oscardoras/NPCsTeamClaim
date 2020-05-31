@@ -6,3 +6,14 @@ author: oscardoras
 main: org.bukkitplugin.npcsteamclaim.NPCsTeamClaimPlugin
 depend: [Claim]
 softdepend: [Team]
+permissions:
+  npcsteamclaim:
+    default: op
+    children:
+      npcsteamclaim.command: true
+  npcsteamclaim.command:
+    default: op
+    children:
+      npcsteamclaim.command.teamclaimstructure: true
+  npcsteamclaim.command.teamclaimstructure:
+    default: op

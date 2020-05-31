@@ -1,12 +1,11 @@
 package org.bukkitplugin.npcsteamclaim;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
-import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -18,7 +17,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.permissions.Permission;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 import org.bukkitplugin.claim.claimable.Claim;
@@ -30,6 +31,13 @@ import org.bukkitplugin.claim.owner.TeamOwner;
 import org.bukkitplugin.claim.rule.ClaimRule;
 import org.bukkitplugin.claim.rule.RuleTarget;
 import org.bukkitutils.BukkitPlugin;
+import org.bukkitutils.command.v1_15_V1.Argument;
+import org.bukkitutils.command.v1_15_V1.CommandRegister;
+import org.bukkitutils.command.v1_15_V1.CommandRegister.CommandExecutorType;
+import org.bukkitutils.command.v1_15_V1.CustomArgument;
+import org.bukkitutils.command.v1_15_V1.LiteralArgument;
+import org.bukkitutils.io.ConfigurationFile;
+import org.bukkitutils.io.TranslatableMessage;
 
 public class NPCsTeamClaimPlugin extends BukkitPlugin implements Listener {
 	
@@ -41,13 +49,15 @@ public class NPCsTeamClaimPlugin extends BukkitPlugin implements Listener {
 	
 	
 	public class Structure {
+		public final String name;
 		public final StructureType type;
 		public final int radius;
 		public final Class<?>[] entityTypes;
 		public final String[] names;
 		public final Map<ClaimRule, Boolean> claimRules;
 		
-		public Structure(StructureType type, int radius, List<String> entityTypes, List<String> names, Map<ClaimRule, Boolean> claimRules) {
+		public Structure(String name, StructureType type, int radius, List<String> entityTypes, List<String> names, Map<ClaimRule, Boolean> claimRules) {
+			this.name = name;
 			this.type = type;
 			this.radius = radius;
 			
@@ -67,33 +77,70 @@ public class NPCsTeamClaimPlugin extends BukkitPlugin implements Listener {
 			this.claimRules = claimRules;
 		}
 	}
-	public static final List<Structure> structures = new ArrayList<Structure>();
+	public static final Map<String, Structure> structures = new HashMap<String, Structure>();
 	
+	@Override
+	public void onLoad() {
+		LinkedHashMap<String, Argument<?>> arguments = new LinkedHashMap<>();
+		arguments.put("claim", new LiteralArgument("claim").withPermission(new Permission("npcsteamclaim.command.teamclaimstructure")));
+		arguments.put("structure", new LiteralArgument("structure").withPermission(new Permission("npcsteamclaim.command.teamclaimstructure")));
+		arguments.put("type", new CustomArgument<Structure>() {
+			protected Structure parse(String arg, SuggestedCommand cmd) throws Exception {
+				Structure structure = structures.get(arg);
+				if (structure == null) throw getCustomException(new TranslatableMessage(plugin, "structure.does_not_exist", arg).getMessage(cmd.getLanguage()));
+				else return structure;
+			}
+		}.withSuggestionsProvider((cmd) -> {
+			return structures.keySet();
+		}));
+		CommandRegister.register("t", arguments, new Permission("npcsteamclaim.command.teamclaimstructure"), CommandExecutorType.ENTITY, (cmd) -> {
+			Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(cmd.getExecutor().getName());
+			claimPlace(cmd.getLocation().getChunk(), (Structure) cmd.getArg(0), team);
+			cmd.sendMessage(new TranslatableMessage(this, "structure.claimed"));
+			return 1;
+		});
+	}
+	
+	@Override
 	public void onEnable() {
 		Bukkit.getPluginManager().registerEvents(this, this);
 		
 		saveDefaultConfig();
 		
-		Set<String> list = StructureType.getStructureTypes().keySet();
 		for (String key : getConfig().getKeys(false)) {
-			if (list.contains(key.toLowerCase())) {
-				try {
-					Map<ClaimRule, Boolean> claimRules = new HashMap<ClaimRule, Boolean>();
-					if (getConfig().contains(key + ".claim_rules"))
-						for (String rule : getConfig().getConfigurationSection(key + ".claim_rules").getKeys(false))
-							claimRules.put(ClaimRule.valueOf(rule), getConfig().getBoolean(key + ".claim_rules." + rule));
-					structures.add(new Structure(
-						StructureType.getStructureTypes().get(key.toLowerCase()),
-						getConfig().getInt(key + ".radius"),
-						getConfig().getStringList(key + ".entity_types"),
-						getConfig().getStringList(key + ".names"),
-						claimRules
-					));
-				} catch (Exception e) {
-					getLogger().warning("Structure type " + key + " is malformed.");
-				}
-			} else getLogger().warning("Structure type " + key + " does not exist.");
+			try {
+				Map<ClaimRule, Boolean> claimRules = new HashMap<ClaimRule, Boolean>();
+				if (getConfig().contains(key + ".claim_rules"))
+					for (String rule : getConfig().getConfigurationSection(key + ".claim_rules").getKeys(false))
+						claimRules.put(ClaimRule.valueOf(rule), getConfig().getBoolean(key + ".claim_rules." + rule));
+					
+				String name = key.toLowerCase();
+				structures.put(name, new Structure(
+					name,
+					StructureType.getStructureTypes().get(name),
+					getConfig().getInt(key + ".radius"),
+					getConfig().getStringList(key + ".entity_types"),
+					getConfig().getStringList(key + ".names"),
+					claimRules
+				));
+			} catch (Exception e) {
+				getLogger().warning("Structure type " + key + " is malformed.");
+			}
 		}
+	}
+	
+	@EventHandler
+	public void onTarget(EntityTargetEvent e) {
+		Entity target = e.getTarget();
+		if (target != null) {
+			Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
+			Team entityTeam = scoreboard.getEntryTeam(e.getEntity().getName());
+			if (entityTeam != null) {
+				Team tagetTeam = scoreboard.getEntryTeam(target.getName());
+				if (entityTeam.equals(tagetTeam)) e.setCancelled(true);
+			}
+		}
+		
 	}
 	
 	@EventHandler
@@ -107,22 +154,22 @@ public class NPCsTeamClaimPlugin extends BukkitPlugin implements Listener {
 	public void onSpawn(CreatureSpawnEvent e) {
 		Entity entity = e.getEntity();
 		Location location = e.getLocation();
-		for (Structure structure : structures) {
-			for (Class<?> type : structure.entityTypes) {
-				if (type.isInstance(entity)) {
-					Claimable claimable = Claimable.get(location.getChunk());
-					if (claimable instanceof ProtectedClaim) {
-						Owner owner = ((Claim) claimable).getOwner();
-						if (owner instanceof TeamOwner) {
-							Location loc = location.getWorld().locateNearestStructure(location, structure.type, structure.radius, false);
-							if (loc != null) {
-								Claimable center = Claimable.get(loc.getChunk());
-								if (center instanceof Claim && ((Claim) center).getOwner().equals(owner))
-									((TeamOwner) owner).getTeam().addEntry(new EntityOwner(entity).getEntry());
+		Chunk chunk = location.getChunk();
+		Claimable claimable = Claimable.get(chunk);
+		if (claimable instanceof ProtectedClaim) {
+			Owner owner = ((Claim) claimable).getOwner();
+			if (owner instanceof TeamOwner) {
+				ConfigurationFile config = StructureClaim.getConfig(location.getWorld());
+				if (config.contains(chunk.getX() + "." + chunk.getZ() + ".structure")) {
+					Structure structure = structures.get(config.getString(chunk.getX() + "." + chunk.getZ() + ".structure"));
+					if (structure != null) {
+						for (Class<?> type : structure.entityTypes) {
+							if (type.isInstance(entity)) {
+								((TeamOwner) owner).getTeam().addEntry(new EntityOwner(entity).getEntry());
+								break;
 							}
 						}
 					}
-					break;
 				}
 			}
 		}
@@ -132,64 +179,78 @@ public class NPCsTeamClaimPlugin extends BukkitPlugin implements Listener {
 	public void onLoad(ChunkLoadEvent e) {
 		if (e.isNewChunk()) {
 			Chunk chunk = e.getChunk();
-			for (Structure structure : structures)
+			for (Structure structure : structures.values()) if (structure.type != null) {
 				Bukkit.getScheduler().scheduleSyncDelayedTask(this, () -> {
 					World world = chunk.getWorld();
 					Location location = world.locateNearestStructure(chunk.getBlock(0, 0, 0).getLocation(), structure.type, 1, false);
-					if (location != null && location.getChunk().equals(chunk) && !(Claimable.get(chunk) instanceof Claim)) {
-						Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
-						
-						Random rand = new Random();
-						String name = structure.names[rand.nextInt(structure.names.length)];
-						String id = name.replaceAll("[^A-Za-z0-9 ]", "").replaceAll(" ", "_");
-						if (name.replaceAll(" ", "").equals("")) {
-							name = "Place";
-							id = name;
-						}
-						
-						if (id.length() > 10) id = id.substring(0, 10);
-						Team team = null;
-						try {
-							team = scoreboard.registerNewTeam(id);
-						} catch (IllegalArgumentException e1) {
-							int i = 2;
-							while (scoreboard.getTeam(id + i) != null) {
-								i++;
-							}
-							team = scoreboard.registerNewTeam(id + i);
-						}
-						team.setDisplayName(name);
-						TeamOwner teamOwner = new TeamOwner(team);
-						
-						int x = chunk.getX();
-						int z = chunk.getZ();
-						for (int i = -structure.radius; i <= structure.radius; i++) {
-							for (int j = -structure.radius; j <= structure.radius; j++) {
-								if (Math.sqrt(i*i + j*j) <= structure.radius) {
-									Chunk c = world.getChunkAt(x+i, z+j);
-									c.load(true);
-									Claimable claim = Claimable.get(c);
-									if (!(claim instanceof Claim)) {
-										claim.protect(teamOwner);
-										ProtectedClaim protectedClaim = (ProtectedClaim) Claimable.get(c);
-										for (Entry<ClaimRule, Boolean> entry : structure.claimRules.entrySet())
-											protectedClaim.setClaimRuleValue(entry.getKey(), RuleTarget.NEUTRALS, entry.getValue());
-										for (Entity entity : c.getEntities()) {
-											for (Class<?> type : structure.entityTypes) {
-												if (type.isInstance(entity)) {
-													String entry = new EntityOwner(entity).getEntry();
-													if (scoreboard.getEntryTeam(entry) == null) team.addEntry(entry);
-													break;
-												}
-											}
-										}
-									}
+					if (location != null && location.getChunk().equals(chunk) && !(Claimable.get(chunk) instanceof Claim))
+						claimPlace(chunk, structure, null);
+				}, 20l);
+			}
+		}
+	}
+	
+	public void claimPlace(Chunk center, Structure structure, Team team) {
+		Scoreboard scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
+		
+		Random rand = new Random();
+		String name = structure.names[rand.nextInt(structure.names.length)];
+		String id = name.replaceAll("[^A-Za-z0-9 ]", "").replaceAll(" ", "_");
+		if (name.replaceAll(" ", "").equals("")) {
+			name = "Place";
+			id = name;
+		}
+		
+		if (team == null) {
+			if (id.length() > 10) id = id.substring(0, 10);
+			if (scoreboard.getTeam(id) == null) team = scoreboard.registerNewTeam(id);
+			else {
+				int i = 2;
+				for (;scoreboard.getTeam(id + i) != null; i++);
+				team = scoreboard.registerNewTeam(id + i);
+			}
+			team.setDisplayName(name);
+		}
+		TeamOwner teamOwner = new TeamOwner(team);
+		
+		World world = center.getWorld();
+		int x = center.getX();
+		int z = center.getZ();
+		ConfigurationFile config = StructureClaim.getConfig(world);
+		for (int i = -structure.radius; i <= structure.radius; i++) {
+			for (int j = -structure.radius; j <= structure.radius; j++) {
+				if (Math.sqrt(i*i + j*j) <= structure.radius) {
+					Chunk c = world.getChunkAt(x+i, z+j);
+					c.load(true);
+					Claimable claim = Claimable.get(c);
+					if (!(claim instanceof Claim)) {
+						claim.protect(teamOwner);
+						config.set(x + "." + z + ".structure", structure.name);
+						ProtectedClaim protectedClaim = (ProtectedClaim) Claimable.get(c);
+						for (Entry<ClaimRule, Boolean> entry : structure.claimRules.entrySet())
+							protectedClaim.setClaimRuleValue(entry.getKey(), RuleTarget.NEUTRALS, entry.getValue());
+						for (Entity entity : c.getEntities()) {
+							for (Class<?> type : structure.entityTypes) {
+								if (type.isInstance(entity)) {
+									String entry = entity.getName();
+									if (scoreboard.getEntryTeam(entry) == null) team.addEntry(entry);
+									break;
 								}
 							}
 						}
 					}
-				}, 20l);
+				}
+			}
 		}
 	}
 	
+}
+
+class StructureClaim extends Claimable {
+	protected StructureClaim(Chunk chunk, ConfigurationFile config) {
+		super(chunk, config);
+	}
+	public static ConfigurationFile getConfig(World world) {
+		return Claimable.getConfig(world);
+	}
 }
