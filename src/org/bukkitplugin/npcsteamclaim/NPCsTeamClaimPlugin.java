@@ -225,7 +225,7 @@ public class NPCsTeamClaimPlugin extends BukkitPlugin implements Listener {
 					Claimable claim = Claimable.get(c);
 					if (!(claim instanceof Claim)) {
 						claim.protect(teamOwner);
-						config.set(x + "." + z + ".structure", structure.name);
+						config.set(c.getX() + "." + c.getZ() + ".structure", structure.name);
 						ProtectedClaim protectedClaim = (ProtectedClaim) Claimable.get(c);
 						for (Entry<ClaimRule, Boolean> entry : structure.claimRules.entrySet())
 							protectedClaim.setClaimRuleValue(entry.getKey(), RuleTarget.NEUTRALS, entry.getValue());
