@@ -82,8 +82,7 @@ public class NPCsTeamClaimPlugin extends BukkitPlugin implements Listener {
 	@Override
 	public void onLoad() {
 		LinkedHashMap<String, Argument<?>> arguments = new LinkedHashMap<>();
-		arguments.put("claim", new LiteralArgument("claim").withPermission(new Permission("npcsteamclaim.command.teamclaimstructure")));
-		arguments.put("structure", new LiteralArgument("structure").withPermission(new Permission("npcsteamclaim.command.teamclaimstructure")));
+		arguments.put("structure", new LiteralArgument("structure").withPermission(new Permission("npcsteamclaim.command.structure")));
 		arguments.put("type", new CustomArgument<Structure>() {
 			protected Structure parse(String arg, SuggestedCommand cmd) throws Exception {
 				Structure structure = structures.get(arg);
@@ -93,7 +92,7 @@ public class NPCsTeamClaimPlugin extends BukkitPlugin implements Listener {
 		}.withSuggestionsProvider((cmd) -> {
 			return structures.keySet();
 		}));
-		CommandRegister.register("t", arguments, new Permission("npcsteamclaim.command.teamclaimstructure"), CommandExecutorType.ENTITY, (cmd) -> {
+		CommandRegister.register("t", arguments, new Permission("team.command.team"), CommandExecutorType.ENTITY, (cmd) -> {
 			Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(cmd.getExecutor().getName());
 			claimPlace(cmd.getLocation().getChunk(), (Structure) cmd.getArg(0), team);
 			cmd.sendMessage(new TranslatableMessage(this, "structure.claimed"));

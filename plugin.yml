@@ -14,6 +14,6 @@ permissions:
   npcsteamclaim.command:
     default: op
     children:
-      npcsteamclaim.command.teamclaimstructure: true
-  npcsteamclaim.command.teamclaimstructure:
+      npcsteamclaim.command.structure: true
+  npcsteamclaim.command.structure:
     default: op
