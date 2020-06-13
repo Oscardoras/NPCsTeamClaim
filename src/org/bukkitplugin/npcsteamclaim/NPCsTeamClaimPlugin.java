@@ -12,10 +12,12 @@ import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.StructureType;
 import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
@@ -48,6 +50,10 @@ public class NPCsTeamClaimPlugin extends BukkitPlugin implements Listener {
 	}
 	
 	
+	public static class Coefs {
+		public float spawn;
+	}
+	public Coefs coefs;
 	public class Structure {
 		public final String name;
 		public final StructureType type;
@@ -106,20 +112,23 @@ public class NPCsTeamClaimPlugin extends BukkitPlugin implements Listener {
 		
 		saveDefaultConfig();
 		
-		for (String key : getConfig().getKeys(false)) {
+		coefs = new Coefs();
+		coefs.spawn = (float) getConfig().getDouble("coefs.spawn");
+		ConfigurationSection section = getConfig().getConfigurationSection("structures");
+		for (String key : section.getKeys(false)) {
 			try {
 				Map<ClaimRule, Boolean> claimRules = new HashMap<ClaimRule, Boolean>();
-				if (getConfig().contains(key + ".claim_rules"))
-					for (String rule : getConfig().getConfigurationSection(key + ".claim_rules").getKeys(false))
-						claimRules.put(ClaimRule.valueOf(rule), getConfig().getBoolean(key + ".claim_rules." + rule));
+				if (section.contains(key + ".claim_rules"))
+					for (String rule : section.getConfigurationSection(key + ".claim_rules").getKeys(false))
+						claimRules.put(ClaimRule.valueOf(rule), section.getBoolean(key + ".claim_rules." + rule));
 					
 				String name = key.toLowerCase();
 				structures.put(name, new Structure(
 					name,
 					StructureType.getStructureTypes().get(name),
-					getConfig().getInt(key + ".radius"),
-					getConfig().getStringList(key + ".entity_types"),
-					getConfig().getStringList(key + ".names"),
+					section.getInt(key + ".radius"),
+					section.getStringList(key + ".entity_types"),
+					section.getStringList(key + ".names"),
 					claimRules
 				));
 			} catch (Exception e) {
@@ -156,6 +165,7 @@ public class NPCsTeamClaimPlugin extends BukkitPlugin implements Listener {
 		Chunk chunk = location.getChunk();
 		Claimable claimable = Claimable.get(chunk);
 		if (claimable instanceof ProtectedClaim) {
+			boolean cancel = true;
 			Owner owner = ((Claim) claimable).getOwner();
 			if (owner instanceof TeamOwner) {
 				ConfigurationFile config = StructureClaim.getConfig(location.getWorld());
@@ -165,12 +175,14 @@ public class NPCsTeamClaimPlugin extends BukkitPlugin implements Listener {
 						for (Class<?> type : structure.entityTypes) {
 							if (type.isInstance(entity)) {
 								((TeamOwner) owner).getTeam().addEntry(new EntityOwner(entity).getEntry());
+								cancel = false;
 								break;
 							}
 						}
 					}
 				}
 			}
+			if (cancel && e.getSpawnReason() == SpawnReason.NATURAL && claimable.getCoef() >= coefs.spawn) e.setCancelled(true);
 		}
 	}
 	
