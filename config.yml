@@ -1,5 +1,5 @@
 # Configuration for the NPCsTeamClaim plugin.
-# You can configure all the StructureType present on https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/StructureType.html
+# You can configure all the StructureType present on https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/StructureType.html and add your own type.
 # entity_types: The list of all types of entities that will form the team on https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/package-summary.html
 
 coefs:
