@@ -1,4 +1,4 @@
-package org.bukkitplugin.npcsteamclaim;
+package me.oscardoras.npcsteamclaim;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -24,22 +24,23 @@ import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.permissions.Permission;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
-import org.bukkitplugin.claim.claimable.Claim;
-import org.bukkitplugin.claim.claimable.Claimable;
-import org.bukkitplugin.claim.claimable.ProtectedClaim;
-import org.bukkitplugin.claim.owner.EntityOwner;
-import org.bukkitplugin.claim.owner.Owner;
-import org.bukkitplugin.claim.owner.TeamOwner;
-import org.bukkitplugin.claim.rule.ClaimRule;
-import org.bukkitplugin.claim.rule.RuleTarget;
-import org.bukkitutils.BukkitPlugin;
-import org.bukkitutils.command.v1_15_V1.Argument;
-import org.bukkitutils.command.v1_15_V1.CommandRegister;
-import org.bukkitutils.command.v1_15_V1.CommandRegister.CommandExecutorType;
-import org.bukkitutils.command.v1_15_V1.CustomArgument;
-import org.bukkitutils.command.v1_15_V1.LiteralArgument;
-import org.bukkitutils.io.ConfigurationFile;
-import org.bukkitutils.io.TranslatableMessage;
+
+import me.oscardoras.claim.claimable.Claim;
+import me.oscardoras.claim.claimable.Claimable;
+import me.oscardoras.claim.claimable.ProtectedClaim;
+import me.oscardoras.claim.owner.EntityOwner;
+import me.oscardoras.claim.owner.Owner;
+import me.oscardoras.claim.owner.TeamOwner;
+import me.oscardoras.claim.rule.ClaimRule;
+import me.oscardoras.claim.rule.RuleTarget;
+import me.oscardoras.spigotutils.BukkitPlugin;
+import me.oscardoras.spigotutils.command.v1_16_1_V1.Argument;
+import me.oscardoras.spigotutils.command.v1_16_1_V1.CommandRegister;
+import me.oscardoras.spigotutils.command.v1_16_1_V1.CustomArgument;
+import me.oscardoras.spigotutils.command.v1_16_1_V1.LiteralArgument;
+import me.oscardoras.spigotutils.command.v1_16_1_V1.CommandRegister.CommandExecutorType;
+import me.oscardoras.spigotutils.io.ConfigurationFile;
+import me.oscardoras.spigotutils.io.TranslatableMessage;
 
 public class NPCsTeamClaimPlugin extends BukkitPlugin implements Listener {
 	

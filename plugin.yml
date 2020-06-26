@@ -3,7 +3,7 @@ version: "1.0.0"
 api-version: 1.13
 description: "Claims villages and dunjeons."
 author: oscardoras
-main: org.bukkitplugin.npcsteamclaim.NPCsTeamClaimPlugin
+main: me.oscardoras.npcsteamclaim.NPCsTeamClaimPlugin
 depend: [Claim]
 softdepend: [Team]
 permissions:
